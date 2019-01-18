@@ -7,6 +7,11 @@ element to be lost from the opposite side.
 """
 
 
+class Empty(Exception):
+    """Error attemping to access an element from an empty container"""
+    pass
+
+
 class ArrayDeque:
     DEFAULT_DEQUE_CAPACITY = 10
 
@@ -15,7 +20,11 @@ class ArrayDeque:
         self._end = 0
         self._maxLen = maxLen
         self._size = 0
-        self._data = [None] * ArrayDeque.DEFAULT_DEQUE_CAPACITY
+        if maxLen:
+            self._data = [None] * \
+                min(ArrayDeque.DEFAULT_DEQUE_CAPACITY, maxLen)
+        else:
+            self._data = [None] * ArrayDeque.DEFAULT_DEQUE_CAPACITY
 
     def __len__(self):
         return self._size
@@ -34,6 +43,9 @@ class ArrayDeque:
         if not replaced:
             self._size += 1
 
+    def is_empty(self):
+        return self._size == 0
+
     def add_last(self, e):
         replaced = False
         if self._size >= len(self._data):
@@ -49,7 +61,9 @@ class ArrayDeque:
             self._size += 1
 
     def _resize(self, newSize):
-        if newSize > len(self._data):
+        if newSize < self._size:
+            raise Exception("Cannot reduce size due to existing data")
+        if newSize != len(self._data):
             old = self._data
             self._data = [None] * newSize
             walker = self._front
@@ -60,14 +74,22 @@ class ArrayDeque:
         self._end = self._front + self._size - 1
 
     def delete_first(self):
+        if self.is_empty():
+            raise Empty("Deque is empty")
         self._data[self._front] = None
         self._front = (self._front + 1) % len(self._data)
         self._size -= 1
+        if self._size <= len(self._data) // 4:
+            self._resize(self._size * 2)
 
     def delete_last(self):
+        if self.is_empty():
+            raise Empty("Deque is empty")
         self._data[self._end] = None
         self._end = (self._end - 1) % len(self._data)
         self._size -= 1
+        if self._size <= len(self._data) // 4:
+            self._resize(self._size * 2)
 
     def first(self):
         return self._data[self._front]
@@ -87,5 +109,10 @@ if __name__ == "__main__":
     deque.delete_first()
     print("First:", deque.first(), "index", deque._front)
     print("Last:", deque.last(), "index", deque._end)
-    # Debugging
+
+    # Debugging and testing
     print(deque._data)
+    print("Length", len(deque))
+    for _ in range(10):
+        deque.delete_last()
+        print(deque._data)
